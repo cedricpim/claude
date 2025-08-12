@@ -1,5 +1,8 @@
 FROM archlinux:latest
 
+# Build argument for credentials directory
+ARG BUILD_CONTEXT_DIR=.
+
 # Update system and install dependencies
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \
@@ -12,18 +15,11 @@ RUN pacman -Syu --noconfirm && \
     base-devel \
     unzip
 
-# Create a non-root user
-RUN useradd -m -s /bin/bash claude-user
-
-# Switch to non-root user
-USER claude-user
-WORKDIR /home/claude-user
-
 # Install Bun
 RUN curl -fsSL https://bun.sh/install | bash
 
 # Add Bun and local bin to PATH
-ENV PATH="/home/claude-user/.local/bin:/home/claude-user/.bun/bin:$PATH"
+ENV PATH="/root/.local/bin:/root/.bun/bin:$PATH"
 
 # Install Claude CLI via official install script
 RUN curl -fsSL https://claude.ai/install.sh | bash
@@ -32,11 +28,11 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 RUN bun install -g ccusage@latest
 
 # Create config directory
-RUN mkdir -p /home/claude-user/.config/claude
+RUN mkdir -p /root/.config/claude
 
 # Copy Claude credentials from host
-COPY --chown=claude-user:claude-user .claude.json /home/claude-user/.claude.json
-COPY --chown=claude-user:claude-user .claude /home/claude-user/.claude
+COPY ${BUILD_CONTEXT_DIR}/.claude.json /root/.claude.json
+COPY ${BUILD_CONTEXT_DIR}/.claude /root/.claude
 
 # Set the default command
 CMD ["claude", "--help"]

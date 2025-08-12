@@ -3,19 +3,26 @@
 IMAGE_NAME := claude-arch
 CONTAINER_NAME := claude-container
 
-# Copy Claude credentials to current directory
+# Configuration variables with defaults
+DOCKER_CMD := $(or $(DOCKER_CMD),docker run)
+COMPOSE_SERVICE := $(or $(COMPOSE_SERVICE),claude)
+COMPOSE_PATH := $(or $(COMPOSE_PATH),.)
+CREDENTIALS_SOURCE := $(or $(CREDENTIALS_SOURCE),$(HOME))
+CREDENTIALS_TARGET := $(or $(CREDENTIALS_TARGET),.)
+
+# Copy Claude credentials to target directory
 copy-creds:
-	@if [ -f $(HOME)/.claude.json ]; then \
-		cp $(HOME)/.claude.json .claude.json; \
-		echo "Copied ~/.claude.json to .claude.json"; \
+	@if [ -f $(CREDENTIALS_SOURCE)/.claude.json ]; then \
+		cp $(CREDENTIALS_SOURCE)/.claude.json $(CREDENTIALS_TARGET)/.claude.json; \
+		echo "Copied $(CREDENTIALS_SOURCE)/.claude.json to $(CREDENTIALS_TARGET)/.claude.json"; \
 	else \
-		echo "Warning: ~/.claude.json not found"; \
+		echo "Warning: $(CREDENTIALS_SOURCE)/.claude.json not found"; \
 	fi
-	@if [ -d $(HOME)/.claude ]; then \
-		cp -r $(HOME)/.claude .claude; \
-		echo "Copied ~/.claude directory to .claude"; \
+	@if [ -d $(CREDENTIALS_SOURCE)/.claude ]; then \
+		cp -r $(CREDENTIALS_SOURCE)/.claude $(CREDENTIALS_TARGET)/.claude; \
+		echo "Copied $(CREDENTIALS_SOURCE)/.claude directory to $(CREDENTIALS_TARGET)/.claude"; \
 	else \
-		echo "Warning: ~/.claude directory not found"; \
+		echo "Warning: $(CREDENTIALS_SOURCE)/.claude directory not found"; \
 	fi
 
 # Build the Docker image (copy credentials first)
@@ -24,36 +31,52 @@ build: copy-creds
 
 # Run Claude with interactive terminal
 run:
-	docker run -it --rm \
-		-v $(HOME)/.config/claude:/home/claude-user/.config/claude \
-		-v $(PWD):/workspace \
-		-w /workspace \
-		--name $(CONTAINER_NAME) \
-		$(IMAGE_NAME) /bin/bash
+	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
+		docker run -it --rm \
+			-v $(HOME)/.config/claude:/root/.config/claude \
+			-v $(PWD):/workspace \
+			-w /workspace \
+			--name $(CONTAINER_NAME) \
+			$(IMAGE_NAME) /bin/bash; \
+	else \
+		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) /bin/bash; \
+	fi
 
 # Run Claude CLI directly
 claude:
-	docker run -it --rm \
-		-v $(HOME)/.config/claude:/home/claude-user/.config/claude \
-		-v $(PWD):/workspace \
-		-w /workspace \
-		$(IMAGE_NAME) claude
+	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
+		docker run -it --rm \
+			-v $(HOME)/.config/claude:/root/.config/claude \
+			-v $(PWD):/workspace \
+			-w /workspace \
+			$(IMAGE_NAME) claude; \
+	else \
+		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) claude; \
+	fi
 
 # Open shell in container
 shell:
-	docker run -it --rm \
-		-v $(HOME)/.config/claude:/home/claude-user/.config/claude \
-		-v $(PWD):/workspace \
-		-w /workspace \
-		$(IMAGE_NAME) /bin/bash
+	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
+		docker run -it --rm \
+			-v $(HOME)/.config/claude:/root/.config/claude \
+			-v $(PWD):/workspace \
+			-w /workspace \
+			$(IMAGE_NAME) /bin/bash; \
+	else \
+		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) /bin/bash; \
+	fi
 
 # Check token usage with live monitoring
 usage:
-	docker run -it --rm \
-		-v $(HOME)/.config/claude:/home/claude-user/.config/claude \
-		-v $(PWD):/workspace \
-		-w /workspace \
-		$(IMAGE_NAME) bunx ccusage@latest blocks --live
+	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
+		docker run -it --rm \
+			-v $(HOME)/.config/claude:/root/.config/claude \
+			-v $(PWD):/workspace \
+			-w /workspace \
+			$(IMAGE_NAME) bunx ccusage@latest blocks --live; \
+	else \
+		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) bunx ccusage@latest blocks --live; \
+	fi
 
 # Clean up Docker resources
 clean:
@@ -70,7 +93,7 @@ clean-all:
 # Show help
 help:
 	@echo "Available commands:"
-	@echo "  copy-creds - Copy Claude credentials from ~ to current directory"
+	@echo "  copy-creds - Copy Claude credentials to target directory"
 	@echo "  build     - Build the Docker image (includes copy-creds)"
 	@echo "  run       - Run container with interactive bash shell"
 	@echo "  claude    - Run Claude CLI directly"
@@ -79,3 +102,14 @@ help:
 	@echo "  clean     - Remove Docker image and prune system"
 	@echo "  clean-all - Remove all containers, images, and system prune"
 	@echo "  help      - Show this help message"
+	@echo ""
+	@echo "Environment variables:"
+	@echo "  DOCKER_CMD=docker-compose - Use docker-compose instead of docker run"
+	@echo "  COMPOSE_SERVICE=claude    - Service name for docker-compose (default: claude)"
+	@echo "  COMPOSE_PATH=path         - Path to docker-compose.yml directory (default: .)"
+	@echo "  CREDENTIALS_SOURCE=path   - Source directory for credentials (default: $$HOME)"
+	@echo "  CREDENTIALS_TARGET=path   - Target directory for credentials (default: .)"
+	@echo ""
+	@echo "Examples:"
+	@echo "  Standalone: make claude"
+	@echo "  Docker-compose: DOCKER_CMD=docker-compose COMPOSE_PATH=.devcontainers make claude"
