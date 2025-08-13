@@ -1,4 +1,4 @@
-.PHONY: build run shell clean usage help copy-creds
+.PHONY: build run shell attach clean usage help copy-creds
 
 IMAGE_NAME := claude-arch
 CONTAINER_NAME := claude-container
@@ -66,6 +66,10 @@ shell:
 		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) /bin/bash; \
 	fi
 
+# Attach to existing docker-compose claude service
+attach:
+	docker-compose -f $(COMPOSE_PATH)/docker-compose.yml attach $(COMPOSE_SERVICE)
+
 # Check token usage with live monitoring
 usage:
 	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
@@ -98,6 +102,7 @@ help:
 	@echo "  run       - Run container with interactive bash shell"
 	@echo "  claude    - Run Claude CLI directly"
 	@echo "  shell     - Open bash shell in container"
+	@echo "  attach    - Attach to existing docker-compose claude service"
 	@echo "  usage     - Monitor token usage with bunx ccusage --live"
 	@echo "  clean     - Remove Docker image and prune system"
 	@echo "  clean-all - Remove all containers, images, and system prune"
