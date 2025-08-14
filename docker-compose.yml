@@ -1,0 +1,10 @@
+name: "claude"
+services:
+  claude:
+    build: .
+    volumes:
+      - ..:/app
+    working_dir: /app
+    stdin_open: true
+    tty: true
+    command: claude
