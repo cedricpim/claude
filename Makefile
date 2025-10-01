@@ -13,12 +13,14 @@ CREDENTIALS_TARGET := $(or $(CREDENTIALS_TARGET),.)
 # Copy Claude credentials to target directory
 copy-creds:
 	@if [ -f $(CREDENTIALS_SOURCE)/.claude.json ]; then \
+		rm $(CREDENTIALS_TARGET)/.claude.json; \
 		cp $(CREDENTIALS_SOURCE)/.claude.json $(CREDENTIALS_TARGET)/.claude.json; \
 		echo "Copied $(CREDENTIALS_SOURCE)/.claude.json to $(CREDENTIALS_TARGET)/.claude.json"; \
 	else \
 		echo "Warning: $(CREDENTIALS_SOURCE)/.claude.json not found"; \
 	fi
 	@if [ -d $(CREDENTIALS_SOURCE)/.claude ]; then \
+		rm -r $(CREDENTIALS_TARGET)/.claude; \
 		cp -r $(CREDENTIALS_SOURCE)/.claude $(CREDENTIALS_TARGET)/.claude; \
 		echo "Copied $(CREDENTIALS_SOURCE)/.claude directory to $(CREDENTIALS_TARGET)/.claude"; \
 	else \
