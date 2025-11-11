@@ -17,14 +17,16 @@ copy-creds:
 		cp $(CREDENTIALS_SOURCE)/.claude.json $(CREDENTIALS_TARGET)/.claude.json; \
 		echo "Copied $(CREDENTIALS_SOURCE)/.claude.json to $(CREDENTIALS_TARGET)/.claude.json"; \
 	else \
-		echo "Warning: $(CREDENTIALS_SOURCE)/.claude.json not found"; \
+		echo "Warning: $(CREDENTIALS_SOURCE)/.claude.json not found. Using placeholder"; \
+		touch .claude.json; \
 	fi
 	@if [ -d $(CREDENTIALS_SOURCE)/.claude ]; then \
 		rm -r $(CREDENTIALS_TARGET)/.claude; \
 		cp -r $(CREDENTIALS_SOURCE)/.claude $(CREDENTIALS_TARGET)/.claude; \
 		echo "Copied $(CREDENTIALS_SOURCE)/.claude directory to $(CREDENTIALS_TARGET)/.claude"; \
 	else \
-		echo "Warning: $(CREDENTIALS_SOURCE)/.claude directory not found"; \
+		echo "Warning: $(CREDENTIALS_SOURCE)/.claude directory not found. Using placeholder"; \
+		mkdir -p .claude; \
 	fi
 
 # Build the Docker image (copy credentials first)
