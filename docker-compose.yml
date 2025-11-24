@@ -2,9 +2,13 @@ name: "claude"
 services:
   claude:
     build: .
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ..:/app
+      - ~/.claude.json:/.claude.json
     working_dir: /app
+    environment:
+      - HOME=/app
     stdin_open: true
     tty: true
     command: claude

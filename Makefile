@@ -1,4 +1,4 @@
-.PHONY: build run shell attach clean usage help copy-creds
+.PHONY: build run shell attach clean usage help
 
 IMAGE_NAME := claude-arch
 CONTAINER_NAME := claude-container
@@ -7,39 +7,20 @@ CONTAINER_NAME := claude-container
 DOCKER_CMD := $(or $(DOCKER_CMD),docker run)
 COMPOSE_SERVICE := $(or $(COMPOSE_SERVICE),claude)
 COMPOSE_PATH := $(or $(COMPOSE_PATH),.)
-CREDENTIALS_SOURCE := $(or $(CREDENTIALS_SOURCE),$(HOME))
-CREDENTIALS_TARGET := $(or $(CREDENTIALS_TARGET),.)
 
-# Copy Claude credentials to target directory
-copy-creds:
-	@if [ -f $(CREDENTIALS_SOURCE)/.claude.json ]; then \
-		rm $(CREDENTIALS_TARGET)/.claude.json; \
-		cp $(CREDENTIALS_SOURCE)/.claude.json $(CREDENTIALS_TARGET)/.claude.json; \
-		echo "Copied $(CREDENTIALS_SOURCE)/.claude.json to $(CREDENTIALS_TARGET)/.claude.json"; \
-	else \
-		echo "Warning: $(CREDENTIALS_SOURCE)/.claude.json not found. Using placeholder"; \
-		touch .claude.json; \
-	fi
-	@if [ -d $(CREDENTIALS_SOURCE)/.claude ]; then \
-		rm -r $(CREDENTIALS_TARGET)/.claude; \
-		cp -r $(CREDENTIALS_SOURCE)/.claude $(CREDENTIALS_TARGET)/.claude; \
-		echo "Copied $(CREDENTIALS_SOURCE)/.claude directory to $(CREDENTIALS_TARGET)/.claude"; \
-	else \
-		echo "Warning: $(CREDENTIALS_SOURCE)/.claude directory not found. Using placeholder"; \
-		mkdir -p .claude; \
-	fi
-
-# Build the Docker image (copy credentials first)
-build: copy-creds
+# Build the Docker image
+build:
 	docker build -t $(IMAGE_NAME) .
 
 # Run Claude with interactive terminal
 run:
 	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
 		docker run -it --rm \
-			-v $(HOME)/.config/claude:/root/.config/claude \
+			--user $(shell id -u):$(shell id -g) \
+			-v $(HOME)/.claude.json:/.claude.json \
 			-v $(PWD):/workspace \
 			-w /workspace \
+			-e HOME=/workspace \
 			--name $(CONTAINER_NAME) \
 			$(IMAGE_NAME) /bin/bash; \
 	else \
@@ -50,9 +31,11 @@ run:
 claude:
 	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
 		docker run -it --rm \
-			-v $(HOME)/.config/claude:/root/.config/claude \
+			--user $(shell id -u):$(shell id -g) \
+			-v $(HOME)/.claude.json:/.claude.json \
 			-v $(PWD):/workspace \
 			-w /workspace \
+			-e HOME=/workspace \
 			$(IMAGE_NAME) claude; \
 	else \
 		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) claude; \
@@ -62,9 +45,11 @@ claude:
 shell:
 	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
 		docker run -it --rm \
-			-v $(HOME)/.config/claude:/root/.config/claude \
+			--user $(shell id -u):$(shell id -g) \
+			-v $(HOME)/.claude.json:/.claude.json \
 			-v $(PWD):/workspace \
 			-w /workspace \
+			-e HOME=/workspace \
 			$(IMAGE_NAME) /bin/bash; \
 	else \
 		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) /bin/bash; \
@@ -78,9 +63,11 @@ attach:
 usage:
 	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
 		docker run -it --rm \
-			-v $(HOME)/.config/claude:/root/.config/claude \
+			--user $(shell id -u):$(shell id -g) \
+			-v $(HOME)/.claude.json:/.claude.json \
 			-v $(PWD):/workspace \
 			-w /workspace \
+			-e HOME=/workspace \
 			$(IMAGE_NAME) bunx ccusage@latest blocks --live; \
 	else \
 		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) bunx ccusage@latest blocks --live; \
@@ -101,8 +88,7 @@ clean-all:
 # Show help
 help:
 	@echo "Available commands:"
-	@echo "  copy-creds - Copy Claude credentials to target directory"
-	@echo "  build     - Build the Docker image (includes copy-creds)"
+	@echo "  build     - Build the Docker image"
 	@echo "  run       - Run container with interactive bash shell"
 	@echo "  claude    - Run Claude CLI directly"
 	@echo "  shell     - Open bash shell in container"
@@ -112,12 +98,19 @@ help:
 	@echo "  clean-all - Remove all containers, images, and system prune"
 	@echo "  help      - Show this help message"
 	@echo ""
+	@echo "Credentials:"
+	@echo "  Claude credentials are stored in ~/.claude.json on the host"
+	@echo "  This file is automatically mounted into containers and persists across runs"
+	@echo "  On first run, Claude will prompt for authentication"
+	@echo ""
+	@echo "File Permissions:"
+	@echo "  All containers run as your host user (UID:GID) to avoid permission issues"
+	@echo "  Files created by Claude will be owned by your host user, not root"
+	@echo ""
 	@echo "Environment variables:"
 	@echo "  DOCKER_CMD=docker-compose - Use docker-compose instead of docker run"
 	@echo "  COMPOSE_SERVICE=claude    - Service name for docker-compose (default: claude)"
 	@echo "  COMPOSE_PATH=path         - Path to docker-compose.yml directory (default: .)"
-	@echo "  CREDENTIALS_SOURCE=path   - Source directory for credentials (default: $$HOME)"
-	@echo "  CREDENTIALS_TARGET=path   - Target directory for credentials (default: .)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  Standalone: make claude"

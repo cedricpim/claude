@@ -30,9 +30,8 @@ RUN bun install -g ccusage@latest
 # Create config directory
 RUN mkdir -p /root/.config/claude
 
-# Copy Claude credentials from host
-COPY ${BUILD_CONTEXT_DIR}/.claude.json /root/.claude.json
-COPY ${BUILD_CONTEXT_DIR}/.claude /root/.claude
+# Note: .claude.json will be mounted as a volume at runtime
+# This allows credentials to persist on the host and be shared across containers
 
 # Set the default command
 CMD ["claude", "--help"]
