@@ -33,21 +33,6 @@ make help
 
 All Makefile commands automatically mount `~/.claude.json` for credential persistence.
 
-### With docker-compose
-
-```bash
-# Set your user ID and group ID (run once in your shell or add to ~/.bashrc)
-export UID=$(id -u)
-export GID=$(id -g)
-
-# Run Claude
-docker-compose run --rm claude
-```
-
-This automatically:
-- Mounts `~/.claude.json` for credential persistence
-- Runs with your host user UID/GID to avoid permission issues
-
 ### With docker run
 
 For interactive Claude sessions:

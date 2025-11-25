@@ -1,12 +1,7 @@
-.PHONY: build run shell attach clean usage help
+.PHONY: build run shell clean usage help
 
 IMAGE_NAME := claude-arch
 CONTAINER_NAME := claude-container
-
-# Configuration variables with defaults
-DOCKER_CMD := $(or $(DOCKER_CMD),docker run)
-COMPOSE_SERVICE := $(or $(COMPOSE_SERVICE),claude)
-COMPOSE_PATH := $(or $(COMPOSE_PATH),.)
 
 # Build the Docker image
 build:
@@ -14,64 +9,44 @@ build:
 
 # Run Claude with interactive terminal
 run:
-	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
-		docker run -it --rm \
-			--user $(shell id -u):$(shell id -g) \
-			-v $(HOME)/.claude.json:/.claude.json \
-			-v $(PWD):/workspace \
-			-w /workspace \
-			-e HOME=/workspace \
-			--name $(CONTAINER_NAME) \
-			$(IMAGE_NAME) /bin/bash; \
-	else \
-		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) /bin/bash; \
-	fi
+	docker run -it --rm \
+		--user $(shell id -u):$(shell id -g) \
+		-v $(HOME)/.claude.json:/.claude.json \
+		-v $(PWD):/workspace \
+		-w /workspace \
+		-e HOME=/workspace \
+		--name $(CONTAINER_NAME) \
+		$(IMAGE_NAME) /bin/bash
 
 # Run Claude CLI directly
 claude:
-	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
-		docker run -it --rm \
-			--user $(shell id -u):$(shell id -g) \
-			-v $(HOME)/.claude.json:/.claude.json \
-			-v $(PWD):/workspace \
-			-w /workspace \
-			-e HOME=/workspace \
-			$(IMAGE_NAME) claude; \
-	else \
-		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) claude; \
-	fi
+	docker run -it --rm \
+		--user $(shell id -u):$(shell id -g) \
+		-v $(HOME)/.claude.json:/.claude.json \
+		-v $(PWD):/workspace \
+		-w /workspace \
+		-e HOME=/workspace \
+		$(IMAGE_NAME) claude
 
 # Open shell in container
 shell:
-	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
-		docker run -it --rm \
-			--user $(shell id -u):$(shell id -g) \
-			-v $(HOME)/.claude.json:/.claude.json \
-			-v $(PWD):/workspace \
-			-w /workspace \
-			-e HOME=/workspace \
-			$(IMAGE_NAME) /bin/bash; \
-	else \
-		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) /bin/bash; \
-	fi
-
-# Attach to existing docker-compose claude service
-attach:
-	docker-compose -f $(COMPOSE_PATH)/docker-compose.yml attach $(COMPOSE_SERVICE)
+	docker run -it --rm \
+		--user $(shell id -u):$(shell id -g) \
+		-v $(HOME)/.claude.json:/.claude.json \
+		-v $(PWD):/workspace \
+		-w /workspace \
+		-e HOME=/workspace \
+		$(IMAGE_NAME) /bin/bash
 
 # Check token usage with live monitoring
 usage:
-	@if [ "$(DOCKER_CMD)" = "docker run" ]; then \
-		docker run -it --rm \
-			--user $(shell id -u):$(shell id -g) \
-			-v $(HOME)/.claude.json:/.claude.json \
-			-v $(PWD):/workspace \
-			-w /workspace \
-			-e HOME=/workspace \
-			$(IMAGE_NAME) bunx ccusage@latest blocks --live; \
-	else \
-		docker-compose -f $(COMPOSE_PATH)/docker-compose.yml exec $(COMPOSE_SERVICE) bunx ccusage@latest blocks --live; \
-	fi
+	docker run -it --rm \
+		--user $(shell id -u):$(shell id -g) \
+		-v $(HOME)/.claude.json:/.claude.json \
+		-v $(PWD):/workspace \
+		-w /workspace \
+		-e HOME=/workspace \
+		$(IMAGE_NAME) bunx ccusage@latest blocks --live
 
 # Clean up Docker resources
 clean:
@@ -92,7 +67,6 @@ help:
 	@echo "  run       - Run container with interactive bash shell"
 	@echo "  claude    - Run Claude CLI directly"
 	@echo "  shell     - Open bash shell in container"
-	@echo "  attach    - Attach to existing docker-compose claude service"
 	@echo "  usage     - Monitor token usage with bunx ccusage --live"
 	@echo "  clean     - Remove Docker image and prune system"
 	@echo "  clean-all - Remove all containers, images, and system prune"
@@ -107,11 +81,5 @@ help:
 	@echo "  All containers run as your host user (UID:GID) to avoid permission issues"
 	@echo "  Files created by Claude will be owned by your host user, not root"
 	@echo ""
-	@echo "Environment variables:"
-	@echo "  DOCKER_CMD=docker-compose - Use docker-compose instead of docker run"
-	@echo "  COMPOSE_SERVICE=claude    - Service name for docker-compose (default: claude)"
-	@echo "  COMPOSE_PATH=path         - Path to docker-compose.yml directory (default: .)"
-	@echo ""
 	@echo "Examples:"
-	@echo "  Standalone: make claude"
-	@echo "  Docker-compose: DOCKER_CMD=docker-compose COMPOSE_PATH=.devcontainers make claude"
+	@echo "  make claude"
